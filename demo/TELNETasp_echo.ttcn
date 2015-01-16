@@ -1,0 +1,153 @@
+/******************************************************************************
+* Copyright (c) 2004, 2014  Ericsson AB
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Eclipse Public License v1.0
+* which accompanies this distribution, and is available at
+* http://www.eclipse.org/legal/epl-v10.html
+*
+* Contributors:
+*  Tibor Csondes  - initial implementation and initial documentation
+*  Akos Cserveni
+*  Elemer Lelik
+*  Gabor Szalai
+*  Gabor Tatarka
+*  Gergely Futo
+*  Istvan Sandor
+*  Peter Dimitrov
+*  Peter Kremer
+*  Tibor Bende
+*  Zoltan Medve
+******************************************************************************/
+
+module TELNETasp_echo {
+import from TELNETasp_PortType all;  
+
+
+template charstring t_pattern(charstring vl_pattern) := pattern vl_pattern;
+
+
+type component TELNETasp_CT {
+  port TELNETasp_PT T_Client_PCO;
+  port TELNETasp_PT T_Server_PCO;
+}
+
+altstep as_Timeout(timer p_t) runs on TELNETasp_CT {
+  [] p_t.timeout {
+    log("Your time is up! I am not waitig for you anymore!");
+  }
+}//altstep
+
+
+function f_server() runs on TELNETasp_CT {
+  map(self:T_Server_PCO, system:T_Server_PCO);
+  var charstring msg;
+  timer t := 3.0;
+
+  t.start;
+  
+  alt {
+
+    [] T_Server_PCO.receive("ls") {
+      t.stop;
+      T_Server_PCO.send("ls\n/\n/bin\n/tmp");
+      t.start;
+      repeat;
+    }
+
+    [] T_Server_PCO.receive(charstring:?) -> value msg {
+      t.stop;
+      T_Server_PCO.send(msg);
+      t.start;
+      repeat;
+    }
+
+    [] T_Server_PCO.receive {repeat;}
+
+    [] T_Client_PCO.receive {
+      t.stop;
+      log("Client port received data on server machine");
+      setverdict (fail);
+    }
+
+    [] as_Timeout(t);
+ 
+  }//alt
+  
+  unmap(self:T_Server_PCO, system:T_Server_PCO);
+}//server end
+
+
+function f_client() runs on TELNETasp_CT {
+  map(self:T_Client_PCO, system:T_Client_PCO);
+  timer t := 0.1;
+  
+  t.start; 
+  T_Client_PCO.send("cd");
+  as_client_receive(t, "", pass);
+  
+  t.start;
+  T_Client_PCO.send("ls");
+  as_client_receive(t, "/\n/bin\n/tmp", pass);
+
+  unmap(self:T_Client_PCO, system:T_Client_PCO);
+}//client end
+
+
+altstep as_client_receive(timer vl_t, charstring vl_pattern, verdicttype vl_verdict) runs on TELNETasp_CT {
+var charstring msg;
+ 
+
+  [] T_Client_PCO.receive(t_pattern(vl_pattern)) -> value msg {
+    vl_t.stop;
+    setverdict(vl_verdict);
+    log("Message: " & msg);
+    vl_t.start;
+    repeat;
+  }
+  
+  [] T_Client_PCO.receive {
+    vl_t.stop;
+    log("Other message type received");
+    vl_t.start;
+    repeat;
+  }
+  
+  [] T_Server_PCO.receive {
+    vl_t.stop;
+    log("Server port received data on client machine");
+    setverdict(fail);
+  }  
+
+  [] as_Timeout(vl_t);
+
+}//as receive
+
+
+
+testcase tc_01() runs on TELNETasp_CT {
+  log("tc_01 test started");
+
+  var TELNETasp_CT server, client;
+
+  server := TELNETasp_CT.create("my server");
+  client := TELNETasp_CT.create("my client");
+
+  server.start(f_server());
+  client.start(f_client());
+
+  all component.done
+
+  setverdict(pass);
+  
+   
+  log("tc_01 test finished");
+}
+
+
+control{ 
+  execute(tc_01());
+}
+
+
+}
+
