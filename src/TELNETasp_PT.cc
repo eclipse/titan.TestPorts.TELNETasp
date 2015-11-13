@@ -21,7 +21,7 @@
 //
 //  File:               TELNETasp_PT.cc
 //  Description:        TELNET testport source file
-//  Rev:                R8E
+//  Rev:                R8H
 //  Prodnr:             CNL 113 320
 //
 
@@ -396,10 +396,24 @@ if (server_mode){
 
         if (ctrl_login_skipped){
            if(ctrl_server_attach_prompt){
-             if ( ::send(nvtsock, "\r\n", 2 , 0) < 0)
+             if ( ::send(nvtsock, "\r\n", 2 , 0) < 0){
+               if(ctrl_server_failsafe_sending){
+                 TTCN_warning("TCP send failed");
+                 goto conn_setup_failed;
+               }
+               else{
                  TTCN_error("TCP send failed");
-             if ( ::send(nvtsock, ctrl_server_prompt, strlen(ctrl_server_prompt), 0) < 0)
+               }
+             }
+             if ( ::send(nvtsock, ctrl_server_prompt, strlen(ctrl_server_prompt), 0) < 0){
+               if(ctrl_server_failsafe_sending){
+                 TTCN_warning("TCP send failed");
+                 goto conn_setup_failed;
+               }
+               else{
                  TTCN_error("TCP send failed");
+               }
+              }
             }
             incoming_message(INTEGER(1));
             isClientLoggedIn = true;
@@ -409,22 +423,45 @@ if (server_mode){
             return;
         }
         //starting login procedure
-        if ( ::send(nvtsock,"\r\n", 2,0 ) < 0)
-            TTCN_error("TCP send failed");
+        if ( ::send(nvtsock,"\r\n", 2,0 ) < 0){
+         if(ctrl_server_failsafe_sending){
+           TTCN_warning("TCP send failed");
+           goto conn_setup_failed;
+         }
+         else{
+           TTCN_error("TCP send failed");
+         }
+        }
 
-        if ( ::send(nvtsock,ctrl_loginname_prompt, strlen(ctrl_loginname_prompt),0 ) < 0)
-            TTCN_error("TCP send failed");
+
+        if ( ::send(nvtsock,ctrl_loginname_prompt, strlen(ctrl_loginname_prompt),0 ) < 0){
+         if(ctrl_server_failsafe_sending){
+           TTCN_warning("TCP send failed");
+           goto conn_setup_failed;
+         }
+         else{
+           TTCN_error("TCP send failed");
+         }
+        }
+        return;
+conn_setup_failed:
+        // Something went wrong during the connection set up
+        // go back listening and close the socket
+        close_connection(nvtsock);
+        Handler_Add_Fd_Read(fd_server);
+        return;
+
+
     } else if (fd==nvtsock){
         recv_msg_from_client(nvtsock);
     } else {TTCN_error("Invalid file descriptor to read %d",fd);}
 } else {
 
-/*    int res=RecvClrMsg(); // workaround for a strange issue
+    int res=RecvClrMsg(); // workaround for a strange issue
     if(res == -2){
-      log_debug("It's kind of fun to do impossible. Enjoy it now.");
-      return;
-    }*/
-    if (RecvClrMsg() < 0) {
+      return; // ignore OOB data
+    }
+    if (res < 0) {
 	if(ctrl_detect_server_disconnected) return;
 	else TTCN_error ("*** Socket error or the server closed the connection "
 	    "(in Event_Handler).");
@@ -627,19 +664,31 @@ if (server_mode){
     if (nvtsock < 0) TTCN_error("Socket creation failed");
     log_debug( "%s: Client socket created: %d", port_name, nvtsock);
 
-    if((he = gethostbyname(ctrl_hostname))==NULL)
-	TTCN_error("Unable to resolve hostname: %s", ctrl_hostname);
-
     if(setsockopt(nvtsock, SOL_SOCKET, SO_REUSEADDR, (const char *)&enabled,
-	sizeof(int)) == -1)
-	TTCN_error("setsockopt(SO_REUSEADDR) failed");
+    sizeof(int)) == -1)
+      TTCN_error("setsockopt(SO_REUSEADDR) failed");
+    log_debug( "%s: SO_REUSEADDR set on: %d", port_name, nvtsock);
 
-    memcpy(&address.sin_addr, he->h_addr_list[0], he->h_length);
+    memset(&(address), 0, sizeof(address));
+    if(!inet_aton(ctrl_hostname,&address.sin_addr)){
+      log_debug( "%s: Try to resolv %s", port_name,ctrl_hostname );
+      struct hostent	*he;
+      if((he = gethostbyname(ctrl_hostname))==NULL)
+        TTCN_error("Unable to resolve hostname: %s", ctrl_hostname);
+      log_debug( "%s: Name resolved", port_name);
+
+
+      memcpy(&address.sin_addr, he->h_addr_list[0], he->h_length);
+    } else {
+      log_debug( "%s: IPv4 literal conversion done", port_name);
+      
+    }
     address.sin_family = AF_INET;
     address.sin_port = htons(ctrl_portnum);
 
     // workaround for WinSock bug (For Cygwin)
     int retries = 0;
+    log_debug( "%s: Try to connect", port_name);
     while (connect(nvtsock, (struct sockaddr*)&address, sizeof(address))<0){
       
       	if (errno != EADDRINUSE) {
@@ -701,15 +750,15 @@ struct pollfd poll_fds;
 	    int poll_res=poll(&poll_fds,1,map_poll_timeout);
       if(poll_res==1){
         int res=RecvClrMsg();
-/*        if(res==-2){ // Workaround for a strange issue
+        if(res==-2){ // ignore OOB data
           continue;
-        } else {*/
+        } else {
           if(res < 0) {
 	            if(ctrl_detect_server_disconnected) return;
 	            else TTCN_error("*** Socket error or the server closed"
 		        " the connection.");
 	        }
-/*        }*/
+        }
       } else {
 	      if(ctrl_detect_server_disconnected) {
 	          log_debug( "%s: Connection timeout during map."
@@ -1338,12 +1387,13 @@ int TELNETasp__PT::RecvClrMsg()
 {
     unsigned char inbuf[BUFFER_SIZE];
     errno=0;
-    int end_len = BUFFER_SIZE, len = recv(nvtsock, inbuf , end_len, 0);
+    int end_len = BUFFER_SIZE, len = recv(nvtsock, inbuf , end_len, MSG_DONTWAIT);
     
-/*    if(len<0 && errno == EAGAIN){  // Workaround for a strange issue. 
+    if(len<0 && errno == EAGAIN){  // ignore OOB data. 
+      recv(nvtsock, inbuf , end_len, MSG_DONTWAIT|MSG_OOB);
       return -2;
     }
-*/    
+    
     if(len>0){
       log_debug( "%s: ********************** NEW MESSAGE"
 	    " RECEIVED **********************", port_name);
@@ -1668,12 +1718,25 @@ void TELNETasp__PT::recv_msg_from_client(int &fd){
                 }
                 ttcn_buf.set_pos(ttcn_buf.get_len());
                 
-                if (::send(fd, "\r\n", 2, 0) < 0 )
-                  TTCN_error("TCP send failed");
-                
-                if (::send(fd, ctrl_password_prompt, strlen(ctrl_password_prompt), 0) < 0 )
-                  TTCN_error("TCP send failed");
-
+                if (::send(fd, "\r\n", 2, 0) < 0 ){
+                       if(ctrl_server_failsafe_sending){
+                         TTCN_warning("TCP send failed");
+                         goto conn_setup_client_disc;
+                       }
+                       else{
+                         TTCN_error("TCP send failed");
+                       }
+               }
+  
+                if (::send(fd, ctrl_password_prompt, strlen(ctrl_password_prompt), 0) < 0 ){
+                  if(ctrl_server_failsafe_sending){
+                    TTCN_warning("TCP send failed");
+                    goto conn_setup_client_disc;
+                  }
+                  else{
+                    TTCN_error("TCP send failed");
+                  }
+                }
                 pass_prompt_send = true;
               } else if (delimiter_came && pass_prompt_send){
                   int pos = ttcn_buf.get_pos();
@@ -1702,13 +1765,28 @@ void TELNETasp__PT::recv_msg_from_client(int &fd){
                   ttcn_buf.clear();
 
                   const char *welcome = "Welcome\r\n";
-                  if (::send(fd, welcome, strlen(welcome), 0) < 0)
-                    TTCN_error("TCP send failed");
-                  if (::send(fd, ctrl_server_prompt, strlen(ctrl_server_prompt),0) < 0)
-                    TTCN_error("TCP send failed");
-              }              
+                  if (::send(fd, welcome, strlen(welcome), 0) < 0){
+                    if(ctrl_server_failsafe_sending){
+                      TTCN_warning("TCP send failed");
+                      goto conn_setup_client_disc;
+                    }
+                    else{
+                      TTCN_error("TCP send failed");
+                    }
+                  }
+                  if (::send(fd, ctrl_server_prompt, strlen(ctrl_server_prompt),0) < 0){
+                    if(ctrl_server_failsafe_sending){
+                      TTCN_warning("TCP send failed");
+                      goto conn_setup_client_disc;
+                    }
+                    else{
+                      TTCN_error("TCP send failed");
+                    }
+                  }
+              }
               
               break;
+              
             }
             
             
@@ -1744,6 +1822,13 @@ void TELNETasp__PT::recv_msg_from_client(int &fd){
             };
   }
   }
+return;
+conn_setup_client_disc:
+        // Something went wrong during the connection set up
+        // go back listening and close the socket
+        close_connection(fd);
+        Handler_Add_Fd_Read(fd_server);
+        return;
 
 }
 

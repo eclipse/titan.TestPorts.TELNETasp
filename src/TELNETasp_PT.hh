@@ -21,7 +21,7 @@
 //
 //  File:               TELNETasp_PT.hh
 //  Description:        TELNET testport header file
-//  Rev:                R8E
+//  Rev:                R8H
 //  Prodnr:             CNL 113 320
 //
 
