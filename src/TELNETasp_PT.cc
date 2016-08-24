@@ -21,7 +21,7 @@
 //
 //  File:               TELNETasp_PT.cc
 //  Description:        TELNET testport source file
-//  Rev:                R8H
+//  Rev:                R9A
 //  Prodnr:             CNL 113 320
 //
 
@@ -584,12 +584,13 @@ set_asp_params();
 config_finished = true;
     suppressed = false;
 
-if(ctrl_portnum == 0)
-    TTCN_error("Missing mandatory parameter: CTRL_PORTNUM");
 if (!server_mode_def){
     TTCN_warning("Mode is not defined. Test Port will operate in client mode operation.");
     server_mode = false;
 }
+
+if((!server_mode) && (ctrl_portnum == 0))  // The portnum can be zero in server mode. The actual listen port is printed out in WARNING
+    TTCN_error("Missing mandatory parameter: CTRL_PORTNUM");
 
 struct sockaddr_in address;
 int enabled = 1;
@@ -634,9 +635,20 @@ if (server_mode){
     memset(&(address.sin_zero), '\0', 8);
      
     if ( bind(fd_server, (struct sockaddr*)&address, sizeof(address)) < 0 )
-        TTCN_error("Error bindig socket to port %d", ctrl_portnum);
+        TTCN_error("%s: Error bindig socket to port %d. Reason: %d %s",port_name ,ctrl_portnum,errno,strerror(errno));
     if (listen(fd_server,1) < 0 )
-        TTCN_error("Error listening on port %d", ctrl_portnum);
+        TTCN_error("%s: Error listening on port %d",port_name ,ctrl_portnum);
+    
+    if(ctrl_portnum==0){  // ephemeral port, get the used one
+      struct sockaddr_in sin;
+      socklen_t len = sizeof(sin);
+      if (getsockname(fd_server, (struct sockaddr *)&sin, &len) == -1){
+        TTCN_warning("%s : Can not get the listen port number errno:%d %s",port_name,errno,strerror(errno));
+      } else {
+        ctrl_portnum=ntohs(sin.sin_port);
+        TTCN_warning("%s : The TELNET listen port: %d",port_name,ctrl_portnum);
+      }
+    }
       
 //    FD_ZERO(&readfds);
 //    FD_SET(fd_server, &readfds);
@@ -1012,6 +1024,13 @@ void TELNETasp__PT::outgoing_send(const ASP__TelnetPortParameters& send_par)
 {
     if(asp_params) delete asp_params;
     asp_params = new ASP__TelnetPortParameters(send_par);
+}
+
+void TELNETasp__PT::outgoing_send(const ASP__Get__portnum& /*send_par*/)
+{
+  ASP__Portnum msg;
+  msg.local__port__num()=ctrl_portnum;
+  incoming_message(msg);
 }
 
 void TELNETasp__PT::outgoing_send(const ASP__TelnetDynamicConfig& send_par)

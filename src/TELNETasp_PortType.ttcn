@@ -21,7 +21,7 @@
 //
 //  File:               TELNETasp_PortType.ttcn
 //  Description:        TELNET testport port definition file
-//  Rev:                R8H
+//  Rev:                R9A
 //  Prodnr:             CNL 113 320
 //
 
@@ -86,14 +86,20 @@ module TELNETasp_PortType
 
  type record ASP_TelnetClose {}
  
- type port TELNETasp_PT message
+ type record ASP_Get_portnum {}  // Querries the local port number
+ type record ASP_Portnum{
+   integer    local_port_num  // The listening port number.
+ }
+type port TELNETasp_PT message
 	{
 	 inout	charstring;
 	 in	integer;
+         in     ASP_Portnum;
 	 out	ASP_TelnetPortParameters,
 		ASP_TelnetDynamicConfig,
 		ASP_TelnetConnection,
-                ASP_TelnetClose;
+                ASP_TelnetClose,
+                ASP_Get_portnum;
 	}
 
 }

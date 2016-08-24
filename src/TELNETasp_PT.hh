@@ -21,7 +21,7 @@
 //
 //  File:               TELNETasp_PT.hh
 //  Description:        TELNET testport header file
-//  Rev:                R8H
+//  Rev:                R9A
 //  Prodnr:             CNL 113 320
 //
 
@@ -156,8 +156,8 @@ protected:
 	void outgoing_send(const ASP__TelnetPortParameters& send_par);
 	void outgoing_send(const ASP__TelnetDynamicConfig& send_par);
 	void outgoing_send(const ASP__TelnetConnection& send_par);
-        void outgoing_send(const ASP__TelnetClose& send_par);
-
+  void outgoing_send(const ASP__TelnetClose& send_par);
+  void outgoing_send(const ASP__Get__portnum&);
 	void	InitStrPar(char *&par, const char *name, const char *val);
 	int 	ProcessCmd(unsigned char * buf, int buflen);
         int 	ProcessNoCmd(unsigned char * buf, int buflen);
