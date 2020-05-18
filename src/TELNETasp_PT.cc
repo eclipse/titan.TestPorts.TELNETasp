@@ -139,9 +139,9 @@ void TELNETasp__PT::set_parameter(const char *parameter_name,
     else if(strcmp("CTRL_READMODE", parameter_name) == 0) {
 	log_debug( "%s: Reading testport parameter: %s = %s",
 	    port_name, parameter_name, parameter_value );
-	if(strcmp(parameter_value, "buffered") == 0) 
+	if(strcmp(parameter_value, "buffered") == 0)
 	    ctrl_readmode = READMODE_BUFFERED;
-	else if(strcmp(parameter_value, "unbuffered") == 0) 
+	else if(strcmp(parameter_value, "unbuffered") == 0)
 	    ctrl_readmode = READMODE_UNBUFFERED;
 	else TTCN_error("Invalid value for: CTRL_READMODE");
     }
@@ -246,7 +246,7 @@ void TELNETasp__PT::set_parameter(const char *parameter_name,
 	    port_name, parameter_name, parameter_value );
 	if(strcasecmp(parameter_value, "yes") == 0)
           ctrl_echo = true;
-	else if(strcasecmp(parameter_value, "no") == 0) 
+	else if(strcasecmp(parameter_value, "no") == 0)
           ctrl_echo = false;
 	else TTCN_error( "Invalid value for: CTRL_ECHO" );
     }
@@ -295,7 +295,7 @@ void TELNETasp__PT::set_parameter(const char *parameter_name,
     else if (strcmp(parameter_name, "CTRL_LOGINNAME_PROMPT") == 0)
         InitStrPar(ctrl_loginname_prompt, parameter_name, parameter_value);
 
-    
+
     else if (strcmp(parameter_name, "CTRL_CLIENT_CLEANUP_LINEFEED") == 0){
       log_debug( "%s: Reading testport parameter: %s = %s",
 	    port_name, parameter_name, parameter_value );
@@ -305,7 +305,7 @@ void TELNETasp__PT::set_parameter(const char *parameter_name,
           ctrl_client_cleanup_linefeed = false;
 	else TTCN_error( "Invalid value for: CTRL_CLIENT_CLEANUP_LINEFEED" );
     }
-    
+
     else if(strcmp(parameter_name, "CTRL_SERVER_ATTACH_PROMPT") == 0){
             log_debug( "%s: Reading testport parameter: %s = %s",
 	    port_name, parameter_name, parameter_value );
@@ -315,7 +315,7 @@ void TELNETasp__PT::set_parameter(const char *parameter_name,
           ctrl_server_attach_prompt = false;
 	else TTCN_error( "Invalid value for: CTRL_SERVER_ATTACH_PROMPT" );
     }
-    
+
     else if(strcmp(parameter_name, "CTRL_DETECT_CLIENT_DISCONNECTED") == 0){
             log_debug( "%s: Reading testport parameter: %s = %s",
 	    port_name, parameter_name, parameter_value );
@@ -325,7 +325,7 @@ void TELNETasp__PT::set_parameter(const char *parameter_name,
           ctrl_detect_client_disconnected = false;
 	else TTCN_error( "Invalid value for: CTRL_DETECT_CLIENT_DISCONNECTED" );
    }
-   
+
    else if(strcmp(parameter_name, "CTRL_SERVER_FAILSAFE_SENDING") == 0){
             log_debug( "%s: Reading testport parameter: %s = %s",
 	    port_name, parameter_name, parameter_value );
@@ -382,10 +382,10 @@ if (server_mode){
     	int
 #endif
         addr_len = sizeof(client);
-            
+
         if ( (nvtsock = accept(fd_server, (struct sockaddr*)&client, &addr_len)) < 0 )
             TTCN_error("Error accepting connection");
-            
+
         inet_ntop(AF_INET, &(client.sin_addr), addr, sizeof(addr));
         log_debug("Accepting connection from: %s on socket %d", addr , nvtsock);
         Handler_Remove_Fd_Read(fd_server);
@@ -532,7 +532,7 @@ conn_setup_failed:
 	    }
 	    nl_found = false;
 	    prompt_found = false;
-            
+
 	    if(!ttcn_buf.get_len()) return;
 	} else { // READMODE_BUFFERED
 	    /* only send if the last line is prompt */
@@ -549,15 +549,15 @@ conn_setup_failed:
 		         else msg_end_pos--;
 		     }
                    }
-		    if(msg_end_pos){  
+		    if(msg_end_pos){
                       suppressed = false;
                       incoming_message(CHARSTRING(msg_end_pos,
 			(const char*)bufptr));
                     }
 		    ttcn_buf.set_pos(prompt_start_pos_prompt);
 		    ttcn_buf.cut();
-		} 
-                
+		}
+
                 if (emptyEcho && suppressed){
                   suppressed = false;
                   incoming_message("");
@@ -604,7 +604,7 @@ if (server_mode){
 
     if(ctrl_server_prompt == NULL)
         TTCN_error("Missing mandatory parameter: CTRL_SERVER_PROMPT");
-        
+
     if (ctrl_username_client == NULL && !ctrl_login_skipped)
         TTCN_error("Missing mandatory parameter: CTRL_USERNAME_CLIENT");
     if (ctrl_password_client == NULL && !ctrl_login_skipped)
@@ -615,30 +615,30 @@ if (server_mode){
             TTCN_error("Not enough memory");
         strcpy(ctrl_loginname_prompt, "login: ");
     }
-    
+
     if (ctrl_password_prompt == NULL){
         if ((ctrl_password_prompt = (char*)malloc(11*sizeof(char))) == NULL )
             TTCN_error("Not enough memory");
         strcpy(ctrl_password_prompt, "password: ");
     }
-    
+
     if ((fd_server = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-        TTCN_error("Socket creation failed");   
-    
+        TTCN_error("Socket creation failed");
+
     log_debug( "%s: Server socket created: %d", port_name, fd_server);
     if ( setsockopt(fd_server, SOL_SOCKET, SO_REUSEADDR, &enabled, sizeof(int)) < 0)
         TTCN_error("setsockopt(SO_REUSEADDR) failed");
-     
+
     address.sin_family = AF_INET;
     address.sin_port = htons(ctrl_portnum);
     address.sin_addr.s_addr = htons(INADDR_ANY);
     memset(&(address.sin_zero), '\0', 8);
-     
+
     if ( bind(fd_server, (struct sockaddr*)&address, sizeof(address)) < 0 )
         TTCN_error("%s: Error bindig socket to port %d. Reason: %d %s",port_name ,ctrl_portnum,errno,strerror(errno));
     if (listen(fd_server,1) < 0 )
         TTCN_error("%s: Error listening on port %d",port_name ,ctrl_portnum);
-    
+
     if(ctrl_portnum==0){  // ephemeral port, get the used one
       struct sockaddr_in sin;
       socklen_t len = sizeof(sin);
@@ -649,12 +649,12 @@ if (server_mode){
         TTCN_warning("%s : The TELNET listen port: %d",port_name,ctrl_portnum);
       }
     }
-      
+
 //    FD_ZERO(&readfds);
 //    FD_SET(fd_server, &readfds);
 //    Install_Handler(&readfds, NULL, NULL, 0.0);
     Handler_Add_Fd_Read(fd_server);
-     
+
     log_debug( "%s: Listening on port %d for incoming connection", port_name, ctrl_portnum);
     port_mapped = true;
 }else{
@@ -693,7 +693,7 @@ if (server_mode){
       memcpy(&address.sin_addr, he->h_addr_list[0], he->h_length);
     } else {
       log_debug( "%s: IPv4 literal conversion done", port_name);
-      
+
     }
     address.sin_family = AF_INET;
     address.sin_port = htons(ctrl_portnum);
@@ -702,7 +702,7 @@ if (server_mode){
     int retries = 0;
     log_debug( "%s: Try to connect", port_name);
     while (connect(nvtsock, (struct sockaddr*)&address, sizeof(address))<0){
-      
+
       	if (errno != EADDRINUSE) {
           if(ctrl_detect_connection_establishment_result) {
             break;
@@ -710,7 +710,7 @@ if (server_mode){
             TTCN_error( "Error connecting %s", ctrl_hostname );
 	    break;
           }
-	} 
+	}
 	if (++retries > 18) {
           if(ctrl_detect_connection_establishment_result) {
             break;
@@ -721,9 +721,9 @@ if (server_mode){
 	}
         log_debug( "%s: WinSock EADDRINUSE bug"
           " workaround: %i. retry", port_name, retries);
-        sleep(10); 
+        sleep(10);
     }
-    
+
 
     log_debug(
 	"%s: Successfully connected to %s on TELNET port", port_name,
@@ -793,11 +793,11 @@ struct pollfd poll_fds;
 	    const unsigned char * ttcn_buf_data = ttcn_buf.get_data();
 	    size_t buflen = ttcn_buf.get_len(), pos = 0;
 
-	    if((!isLoginSent) && 
+	    if((!isLoginSent) &&
 		(buf_strcmp("sername", ttcn_buf_data, buflen, pos) ||
 		buf_strcmp("ogin", ttcn_buf_data, buflen, pos)))
 	    {
-		//usleep(100000UL);         // 100 ms	
+		//usleep(100000UL);         // 100 ms
 		::send(nvtsock, ctrl_username, strlen(ctrl_username), 0);
 		if(ctrl_CRLF) ::send( nvtsock, "\r\n", 2, 0 );
 		else ::send( nvtsock, "\n", 1, 0 );
@@ -805,7 +805,7 @@ struct pollfd poll_fds;
 		ttcn_buf.clear();
 		log_debug("%s: user name sent.",port_name);
 	    }
-	    else if((!isPasswordSent) && 
+	    else if((!isPasswordSent) &&
 		buf_strcmp("assword", ttcn_buf_data, buflen, pos))
 	    {
 		//usleep(100000UL);         // 100 ms
@@ -817,7 +817,7 @@ struct pollfd poll_fds;
 		ttcn_buf.clear();
 		log_debug("%s: password sent.",port_name);
 	    }
-	    else if((!isDomainSent) && 
+	    else if((!isDomainSent) &&
 		buf_strcmp("omain", ttcn_buf_data, buflen, pos))
 	    {
 		//usleep(100000UL);         // 100 ms
@@ -849,7 +849,7 @@ struct pollfd poll_fds;
     }
 
     ttcn_buf.clear();
-    
+
     if(ctrl_detect_connection_establishment_result) {
       incoming_message(INTEGER(2)); // connection establishment succeeded
     }
@@ -882,7 +882,7 @@ if (server_mode){
     if (nvtsock != -1){
         close_connection(nvtsock);
     }
-    
+
     if (fd_server != -1) close(fd_server);
     fd_server = -1;
 //    FD_ZERO(&readfds);
@@ -918,15 +918,15 @@ void TELNETasp__PT::outgoing_send(const CHARSTRING& send_par)
 {
 	log_debug( "%s: TELNETasp__PT::outgoing_send", port_name);
   if (server_mode) {
-  
+
     if (!port_mapped){
         TTCN_Logger::log(TTCN_WARNING, "%s: Send operation failed: the port"
 	    " is disconnected.", port_name);
 	return;
     }
     if (!isClientLoggedIn){
-        TTCN_warning("%s: Send operation failed: the client has not logged in", port_name);  
-        return;  
+        TTCN_warning("%s: Send operation failed: the client has not logged in", port_name);
+        return;
     }
     if(ctrl_server_attach_prompt){
      if  (send_nonblock(nvtsock, (const char*) (send_par + "\r\n" + ctrl_server_prompt), send_par.lengthof() + 2 + strlen(ctrl_server_prompt), 0 ) < 0){
@@ -955,7 +955,7 @@ void TELNETasp__PT::outgoing_send(const CHARSTRING& send_par)
         TTCN_Logger::end_event();
     }
   } else {
-    
+
     if(!isConnected) {
 	log_debug( "%s: Send operation failed: the port"
 	    " is disconnected.", port_name);
@@ -982,7 +982,7 @@ int TELNETasp__PT::send_nonblock(int sockfd, const char *buf, size_t len, int fl
   while(len){
 	  log_debug( "%s: TELNETasp__PT::send_nonblock", port_name);
     int ret=::send(sockfd, buf, len,  flags );
-    
+
     if(ret>0){
       len-=ret;
       buf+=ret;
@@ -1343,9 +1343,9 @@ int TELNETasp__PT::ProcessCmd(unsigned char * buf, int buflen)
 	CMD.rewind();
 	::send( nvtsock, CMD.get_read_data(), CMD.get_read_len(), 0 );
 	if(debugAllowed) {
-            
-#ifdef DEBUG_ProcessCmd          
-            if(TTCN_Logger::log_this_event(TTCN_DEBUG)) {  
+
+#ifdef DEBUG_ProcessCmd
+            if(TTCN_Logger::log_this_event(TTCN_DEBUG)) {
 	        TTCN_Logger::begin_event(TTCN_DEBUG);
 	        TTCN_Logger::log_event("%s: command sent:", port_name);
 	        bool ttype=false, subcmd=false, naws=false;
@@ -1407,12 +1407,12 @@ int TELNETasp__PT::RecvClrMsg()
     unsigned char inbuf[BUFFER_SIZE];
     errno=0;
     int end_len = BUFFER_SIZE, len = recv(nvtsock, inbuf , end_len, MSG_DONTWAIT);
-    
-    if(len<0 && errno == EAGAIN){  // ignore OOB data. 
+
+    if(len<0 && errno == EAGAIN){  // ignore OOB data.
       recv(nvtsock, inbuf , end_len, MSG_DONTWAIT|MSG_OOB);
       return -2;
     }
-    
+
     if(len>0){
       log_debug( "%s: ********************** NEW MESSAGE"
 	    " RECEIVED **********************", port_name);
@@ -1484,7 +1484,7 @@ bool TELNETasp__PT::buf_strcmp(const char * s1, const unsigned char * s2,
 }
 
 void TELNETasp__PT::log_debug(const char *fmt, ...)
-{ 
+{
   if(debugAllowed)  {
       TTCN_Logger::begin_event(TTCN_DEBUG);
       TTCN_Logger::log_event("TELNET test port (%s): ", get_name());
@@ -1629,7 +1629,7 @@ void TELNETasp__PT::reset_configuration()
     window_size.reset();
     delete asp_params;
     asp_params = NULL;
-    
+
     free(ctrl_username_client);
     ctrl_username_client = NULL;
     free(ctrl_password_client);
@@ -1644,19 +1644,19 @@ void TELNETasp__PT::reset_configuration()
     ctrl_password_prompt = NULL;
     free(ctrl_loginname_prompt);
     ctrl_loginname_prompt = NULL;
-    
+
     debugAllowed = false;
 }
 
 void TELNETasp__PT::recv_msg_from_client(int &fd){
   unsigned char inbuf[BUFFER_SIZE];
   unsigned int length;
-  
+
   log_debug("%s: Receive message from client", port_name);
   length = recv(fd, inbuf, BUFFER_SIZE, O_NONBLOCK);
-  
+
   switch (length){
-  case -1:{ 
+  case -1:{
           log_debug("%s: Error reading from file descriptor %d. Errno = %d", port_name, fd, errno);
           errno = 0;
 //          close_connection(fd);
@@ -1711,11 +1711,11 @@ void TELNETasp__PT::recv_msg_from_client(int &fd){
             }
 
             if (!isClientLoggedIn){
-              
+
               int pos;
               for (int i = 0; i < new_length; i++){
                 if ( (inbuf[i] == '\n') || (inbuf[i] == '\r')){ delimiter_came = true; pos = i; break; }
-              }              
+              }
 
               if (delimiter_came) ttcn_buf.put_s(pos+1, inbuf);
               else ttcn_buf.put_s(new_length, inbuf);
@@ -1731,12 +1731,12 @@ void TELNETasp__PT::recv_msg_from_client(int &fd){
                   TTCN_logger.log(TTCN_DEBUG,"%s ------------------------ End logging -----------------------------\n", port_name);
               }
 
-              if (delimiter_came && !pass_prompt_send){                
+              if (delimiter_came && !pass_prompt_send){
                 if (!check((const char *)ctrl_username_client, ttcn_buf.get_data(), ttcn_buf.get_len() ) ){
                     login_incorrect = true;
                 }
                 ttcn_buf.set_pos(ttcn_buf.get_len());
-                
+
                 if (::send(fd, "\r\n", 2, 0) < 0 ){
                        if(ctrl_server_failsafe_sending){
                          TTCN_warning("TCP send failed");
@@ -1746,7 +1746,7 @@ void TELNETasp__PT::recv_msg_from_client(int &fd){
                          TTCN_error("TCP send failed");
                        }
                }
-  
+
                 if (::send(fd, ctrl_password_prompt, strlen(ctrl_password_prompt), 0) < 0 ){
                   if(ctrl_server_failsafe_sending){
                     TTCN_warning("TCP send failed");
@@ -1759,7 +1759,7 @@ void TELNETasp__PT::recv_msg_from_client(int &fd){
                 pass_prompt_send = true;
               } else if (delimiter_came && pass_prompt_send){
                   int pos = ttcn_buf.get_pos();
-                  if (login_incorrect || !check((const char *)ctrl_password_client, ttcn_buf.get_data()+pos, ttcn_buf.get_len()-pos) ) {                    
+                  if (login_incorrect || !check((const char *)ctrl_password_client, ttcn_buf.get_data()+pos, ttcn_buf.get_len()-pos) ) {
                     int len = ttcn_buf.get_len();
                     const char *data = (const char*)ttcn_buf.get_data();
                     CHARSTRING cc1( pos - 1, data);
@@ -1803,14 +1803,14 @@ void TELNETasp__PT::recv_msg_from_client(int &fd){
                     }
                   }
               }
-              
+
               break;
-              
+
             }
-            
-            
+
+
             ttcn_buf.put_s(new_length,inbuf);
-            
+
             if(debugAllowed) {
                 TTCN_logger.log(TTCN_DEBUG,"%s: ------------------------ Logging the incoming buffer -----------------------------", port_name);
                 log_buffer("The content of the incoming buffer: (hexstring fromat)", inbuf, length);
@@ -1821,7 +1821,7 @@ void TELNETasp__PT::recv_msg_from_client(int &fd){
                 TTCN_Logger::end_event();
                 TTCN_logger.log(TTCN_DEBUG,"%s ------------------------ End logging -----------------------------\n", port_name);
             }
-           
+
             int i,len;
             const unsigned char *data;
             for(;;){
@@ -1855,7 +1855,7 @@ int TELNETasp__PT::ProcessNoCmd(unsigned char * buf, int buflen)
 {
 	unsigned char CMD[1024];
 	int cmd_len = 0, i;
-	
+
 	log_debug("Processing commands");
         // option negotiation part
 	for ( i = 0; i+2 < buflen; i += 3 ) {
@@ -1935,7 +1935,7 @@ Window_Size::~Window_Size()
 }
 
 void Window_Size::log_debug(const char *fmt, ...)
-{ 
+{
   if(ws_debugAllowed)  {
       TTCN_Logger::begin_event(TTCN_DEBUG);
       va_list ap;
@@ -1951,12 +1951,12 @@ void Window_Size::set_debug(bool debug_enabled)
   ws_debugAllowed = debug_enabled;
 }
 
- 
+
 void Window_Size::set_state(WindowSize_state_t new_state)
 {
     if(!is_set()) my_state = WSS_NOT_SET;
     else switch(new_state) {
-    case WSS_INIT: 
+    case WSS_INIT:
             log_debug("Window_Size::set_state(): can't set "
 	    "state to WSS_INIT.");
 	break;
@@ -2244,7 +2244,7 @@ void TELNETasp__PT::close_connection(int& fd){
     Handler_Remove_Fd_Read(fd);
 
     close(fd);
-    isClientLoggedIn = false;  
+    isClientLoggedIn = false;
     pass_prompt_send = false;
     login_incorrect = false;
     fd = -1;
