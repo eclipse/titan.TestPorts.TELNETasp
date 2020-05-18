@@ -1650,7 +1650,7 @@ void TELNETasp__PT::reset_configuration()
 
 void TELNETasp__PT::recv_msg_from_client(int &fd){
   unsigned char inbuf[BUFFER_SIZE];
-  unsigned int length;
+  int length;
 
   log_debug("%s: Receive message from client", port_name);
   length = recv(fd, inbuf, BUFFER_SIZE, O_NONBLOCK);
